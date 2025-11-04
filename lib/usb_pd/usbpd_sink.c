@@ -1000,6 +1000,11 @@ static void usbpd_sink_protocol_analysis_sop0(const uint8_t *rx_buffer, uint8_t 
     USBPD_MessageHeader_t header = {0};
     header.d16 = *(uint16_t *)rx_buffer;
 
+    // 判断 power role
+    if (header.MessageHeader.PortPowerRole_CablePlug == 0) {
+        return;
+    }
+
     // 如果当前收到消息非 GoodCRC，则需先回复 GoodCRC
     bool is_goodcrc_msg = (header.MessageHeader.Extended == 0) &&
                           (header.MessageHeader.NumberOfDataObjects == 0) &&
