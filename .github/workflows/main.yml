@@ -33,11 +33,11 @@ jobs:
         run: pip install --upgrade platformio
       
       - name: Build firmware
-        run: pio run -e CH32X035
+        run: pio run
       
       - name: Upload firmware artifact
         uses: actions/upload-artifact@v4
         with:
           name: firmware-${{ github.sha }}
-          path: .pio/build/CH32X035/firmware.*
+          path: .pio/build
           retention-days: 90
