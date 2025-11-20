@@ -36,6 +36,9 @@
 // tPPSRequest (max:10s)
 #define tPPSRequest (10000 - 50)
 
+// MIPPS wait timeout
+#define tMIPPS_Timeout (1000)
+
 // 用于存储可用的 PDO 以供后续发送请求使用
 typedef struct {
     uint32_t raw;          // PDO 原始数据
@@ -144,6 +147,12 @@ typedef enum {
     PD_STATE_IDLE,
 } pd_state_t;
 
+#define IS_MIPPS_WAIT_VDM_STATE(state) (                                                                           \
+    (state) == MIPPS_STATE_WAIT_VDM_ACK_DISCOVER_IDENTITY || (state) == MIPPS_STATE_WAIT_VDM_ACK_DISCOVER_SVIDS || \
+    (state) == MIPPS_STATE_WAIT_VDM_1 || (state) == MIPPS_STATE_WAIT_VDM_2 || (state) == MIPPS_STATE_WAIT_VDM_3 || \
+    (state) == MIPPS_STATE_WAIT_VDM_4 || (state) == MIPPS_STATE_WAIT_VDM_5 || (state) == MIPPS_STATE_WAIT_VDM_6 || \
+    (state) == MIPPS_STATE_WAIT_VDM_7)
+
 typedef struct {
     volatile bool is_ready;                               // PD 是否已就绪（已发送第一次电源请求，并且 Source 已回复 RS_RDY）
     volatile USBPD_SpecificationRevision_t pd_version;    // PD Specification Revision，需在收到 Source_Capabilities 后设置为和 Source 相同的 version
@@ -155,7 +164,7 @@ typedef struct {
     uint32_t spr_source_cap_buffer[7];                    // SPR Source Capability 缓冲区（SPR 最多 7 个 PDO）
     volatile uint8_t spr_source_cap_buffer_pdo_count;     // SPR Source Capability 缓冲区中的 PDO 数量
     uint32_t epr_source_cap_buffer[11];                   // EPR Source Capability 缓冲区（EPR 最多 11 个 PDO）
-    volatile uint8_t epr_source_cap_buffer_pdo_count;     // EPR Source Capability 缓冲区中的 PDO 数量
+    volatile uint8_t epr_source_cap_buffer_pdo_count;     // TODO: 可删除，直接使用 size // EPR Source Capability 缓冲区中的 PDO 数量
     volatile uint8_t epr_source_cap_buffer_size;          // EPR Source Capability 缓冲区大小（用于分块接收）
     volatile uint8_t epr_source_cap_buffer_chunk_number;  // EPR Source Capability 缓冲区正在接收的分块号
     volatile uint8_t cc_none_times;                       // cc 未连接计数
@@ -170,6 +179,7 @@ typedef struct {
     volatile bool cable_epr_capable;                      // Cable 是否支持 EPR
     volatile uint32_t epr_keepalive_timer;                // SinkEPRKeepAliveTimer 定时器，需在收到和回复 GoodCRC 后重置，超时 tSinkEPRKeepAlive 需发送 EPR Keep Alive
     volatile uint32_t pps_periodic_timer;                 // SinkPPSPeriodicTimer 定时器，需在收到和回复 GoodCRC 后重置，超时 tPPSRequest 需重新发送 SPR Request
+    volatile uint32_t mipps_timeout_timer;                // MIPPS 超时定时器
 
     uint8_t port_data_role;          // 0b UFP, 1b DFP
     bool mipps_is_drswap_requested;  // MIPPS 尚未发送 drswap

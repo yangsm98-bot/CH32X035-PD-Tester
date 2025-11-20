@@ -107,7 +107,7 @@ int main(void) {
         delay_ms(10);
     }
 
-    delay_ms(1000);
+    delay_ms(2000);
 
     // 查找最大功率 PDO
     uint8_t position;

@@ -110,6 +110,7 @@ static void usbpd_sink_state_reset(void) {
     // 重置定时器
     pd_control_g.epr_keepalive_timer = 0;
     pd_control_g.pps_periodic_timer = 0;
+    pd_control_g.mipps_timeout_timer = 0;
 
     pd_control_g.port_data_role = 0;
     pd_control_g.mipps_is_drswap_requested = 0;
@@ -1120,9 +1121,9 @@ static void usbpd_sink_protocol_analysis_sop0(const uint8_t *rx_buffer, uint8_t 
                         break;
                     }
 
-                    // 在发送 MIPPS 非结构化 VDM 后，如果收到 NOT_SUPPORTED 回复，则直接发送 GET_SRC_CAP
-                    if (pd_control_g.pd_state >= MIPPS_STATE_WAIT_VDM_1 && pd_control_g.pd_state <= MIPPS_STATE_WAIT_VDM_7) {
-                        pd_control_g.pd_state = MIPPS_STATE_SEND_GET_SRC_CAP;
+                    // 在发送 MIPPS VDM 后，如果收到 NOT_SUPPORTED 回复，则直接发送下一个 VDM
+                    if (IS_MIPPS_WAIT_VDM_STATE(pd_control_g.pd_state)) {
+                        pd_control_g.pd_state++;
                         break;
                     }
 
@@ -1230,6 +1231,7 @@ static void usbpd_sink_protocol_analysis_sop0(const uint8_t *rx_buffer, uint8_t 
                                 pd_control_g.pd_state = MIPPS_STATE_SEND_VDM_1;
                                 break;
                             }
+                            pd_printf("MIPPS: Unknown SVID 0x%04x, jumping to IDLE state\n", svid);
                             pd_control_g.pd_state = PD_STATE_IDLE;
                             break;
                         }
@@ -1462,7 +1464,7 @@ static void usbpd_sink_protocol_analysis_sop1(const uint8_t *rx_buffer, uint8_t 
                                 // pd_printf("  FirmwareVersion: %d\n", vdo.PassiveCableVDO.FirmwareVersion);
                                 // pd_printf("  HWVersion: %d\n", vdo.PassiveCableVDO.HWVersion);
 
-                                usbpd_sink_phy_send_data(usbpd_tx_buffer, (2 + 5 * 4), UPD_SOP1);
+                                usbpd_sink_phy_send_data(usbpd_tx_buffer, (2 + 4 * 5), UPD_SOP1);
                                 break;
                             }
                             case 2:  // Discover SVIDs
@@ -1542,6 +1544,20 @@ void TIM3_IRQHandler(void) {
         }
     } else {
         pd_control_g.pps_periodic_timer = 0;
+    }
+
+    // MIPPS WAIT 状态超时定时器
+    if (IS_MIPPS_WAIT_VDM_STATE(pd_control_g.pd_state)) {
+        pd_control_g.mipps_timeout_timer++;
+
+        if (pd_control_g.mipps_timeout_timer >= tMIPPS_Timeout) {
+            pd_printf("MIPPS VDM WAIT timeout in state %d, jumping to next state\n", pd_control_g.pd_state);
+            pd_control_g.pd_state++;
+            pd_control_g.mipps_timeout_timer = 0;
+        }
+    } else {
+        // 离开 WAIT 状态时自动重置计时器
+        pd_control_g.mipps_timeout_timer = 0;
     }
 
     // 在 PD_STATE_CHECK_CONNECT 状态时检测 CC 连接
