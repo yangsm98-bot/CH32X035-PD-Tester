@@ -829,7 +829,7 @@ static void usbpd_sink_state_process(void) {
             *(uint32_t *)&usbpd_tx_buffer[2] = vdm_header.d32;
 
             usbpd_sink_phy_send_data(usbpd_tx_buffer, (2 + 4), UPD_SOP0);
-            pd_control_g.pd_state = MIPPS_STATE_WAIT_VDM_ACK_DISCOVER_IDENTITY;
+            pd_control_g.pd_state = PD_STATE_IDLE;
             break;
         }
         case MIPPS_STATE_SEND_VDM_REQ_DISCOVER_SVIDS: {
@@ -853,7 +853,7 @@ static void usbpd_sink_state_process(void) {
             *(uint32_t *)&usbpd_tx_buffer[2] = vdm_header.d32;
 
             usbpd_sink_phy_send_data(usbpd_tx_buffer, (2 + 4), UPD_SOP0);
-            pd_control_g.pd_state = MIPPS_STATE_WAIT_VDM_ACK_DISCOVER_SVIDS;
+            pd_control_g.pd_state = PD_STATE_IDLE;
             break;
         }
         case MIPPS_STATE_SEND_VDM_1: {
@@ -1122,7 +1122,7 @@ static void usbpd_sink_protocol_analysis_sop0(const uint8_t *rx_buffer, uint8_t 
                     }
 
                     // 在发送 MIPPS VDM 后，如果收到 NOT_SUPPORTED 回复，则直接发送下一个 VDM
-                    if (IS_MIPPS_WAIT_VDM_STATE(pd_control_g.pd_state)) {
+                    if (IS_MIPPS_UVDM_WAIT_STATE(pd_control_g.pd_state)) {
                         pd_control_g.pd_state++;
                         break;
                     }
@@ -1248,32 +1248,8 @@ static void usbpd_sink_protocol_analysis_sop0(const uint8_t *rx_buffer, uint8_t 
                     // Unstructured VDM
                     if (vdm_header.StructuredVDMHeader.VDMType == VDM_TYPE_UNSTRUCTURED) {
                         // MIPPS
-                        if (pd_control_g.pd_state == MIPPS_STATE_WAIT_VDM_1) {
-                            pd_control_g.pd_state = MIPPS_STATE_SEND_VDM_2;
-                            break;
-                        }
-                        if (pd_control_g.pd_state == MIPPS_STATE_WAIT_VDM_2) {
-                            pd_control_g.pd_state = MIPPS_STATE_SEND_VDM_3;
-                            break;
-                        }
-                        if (pd_control_g.pd_state == MIPPS_STATE_WAIT_VDM_3) {
-                            pd_control_g.pd_state = MIPPS_STATE_SEND_VDM_4;
-                            break;
-                        }
-                        if (pd_control_g.pd_state == MIPPS_STATE_WAIT_VDM_4) {
-                            pd_control_g.pd_state = MIPPS_STATE_SEND_VDM_5;
-                            break;
-                        }
-                        if (pd_control_g.pd_state == MIPPS_STATE_WAIT_VDM_5) {
-                            pd_control_g.pd_state = MIPPS_STATE_SEND_VDM_6;
-                            break;
-                        }
-                        if (pd_control_g.pd_state == MIPPS_STATE_WAIT_VDM_6) {
-                            pd_control_g.pd_state = MIPPS_STATE_SEND_VDM_7;
-                            break;
-                        }
-                        if (pd_control_g.pd_state == MIPPS_STATE_WAIT_VDM_7) {
-                            pd_control_g.pd_state = MIPPS_STATE_SEND_GET_SRC_CAP;
+                        if (IS_MIPPS_UVDM_WAIT_STATE(pd_control_g.pd_state)) {
+                            pd_control_g.pd_state++;
                             break;
                         }
                     }
@@ -1556,12 +1532,12 @@ void TIM3_IRQHandler(void) {
     }
 
     // MIPPS WAIT 状态超时定时器
-    if (IS_MIPPS_WAIT_VDM_STATE(pd_control_g.pd_state)) {
+    if (IS_MIPPS_UVDM_WAIT_STATE(pd_control_g.pd_state)) {
         pd_control_g.mipps_timeout_timer++;
 
         if (pd_control_g.mipps_timeout_timer >= tMIPPS_Timeout) {
             pd_printf("MIPPS VDM WAIT timeout in state %d, jumping to next state\n", pd_control_g.pd_state);
-            pd_control_g.pd_state++;
+            pd_control_g.pd_state = PD_STATE_IDLE;
             pd_control_g.mipps_timeout_timer = 0;
         }
     } else {

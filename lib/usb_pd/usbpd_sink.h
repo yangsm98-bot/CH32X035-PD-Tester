@@ -114,12 +114,14 @@ typedef enum {
     MIPPS_STATE_SEND_DRSWAP,
     MIPPS_STATE_WAIT_DRSWAP_ACCEPT,  // set control_g.port_data_role = 1
 
-    MIPPS_STATE_SEND_VDM_REQ_DISCOVER_IDENTITY,
-    MIPPS_STATE_WAIT_VDM_ACK_DISCOVER_IDENTITY,
+    MIPPS_STATE_SEND_VDM_REQ_DISCOVER_IDENTITY,  // 发完直接 PD_STATE_IDLE 防止不回复卡住状态机
+    // MIPPS_STATE_WAIT_VDM_ACK_DISCOVER_IDENTITY,
 
-    MIPPS_STATE_SEND_VDM_REQ_DISCOVER_SVIDS,
-    MIPPS_STATE_WAIT_VDM_ACK_DISCOVER_SVIDS,  // 判断 SVID == 0x2717
+    MIPPS_STATE_SEND_VDM_REQ_DISCOVER_SVIDS,  // 发完直接 PD_STATE_IDLE 防止不回复卡住状态机
+    // MIPPS_STATE_WAIT_VDM_ACK_DISCOVER_SVIDS,  // 收到 DISCOVER_SVIDS ACK 时判断 SVID == 0x2717
 
+    // 如果 VDM1 到 VDM7 等待超时，直接 PD_STATE_IDLE
+    // 如果 VDM1 到 VDM7 期间，收到 NOT_SUPPORTED 则忽略跳转到下个发送状态
     MIPPS_STATE_SEND_VDM_1,  // 0x27170101
     MIPPS_STATE_WAIT_VDM_1,
 
@@ -147,8 +149,8 @@ typedef enum {
     PD_STATE_IDLE,
 } pd_state_t;
 
-#define IS_MIPPS_WAIT_VDM_STATE(state) (                                                                           \
-    (state) == MIPPS_STATE_WAIT_VDM_ACK_DISCOVER_IDENTITY || (state) == MIPPS_STATE_WAIT_VDM_ACK_DISCOVER_SVIDS || \
+// 判断是否是 MIPPS Unstructured VDM 等待回复状态
+#define IS_MIPPS_UVDM_WAIT_STATE(state) (                                                                          \
     (state) == MIPPS_STATE_WAIT_VDM_1 || (state) == MIPPS_STATE_WAIT_VDM_2 || (state) == MIPPS_STATE_WAIT_VDM_3 || \
     (state) == MIPPS_STATE_WAIT_VDM_4 || (state) == MIPPS_STATE_WAIT_VDM_5 || (state) == MIPPS_STATE_WAIT_VDM_6 || \
     (state) == MIPPS_STATE_WAIT_VDM_7)
