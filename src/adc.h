@@ -18,7 +18,7 @@
 #define ADC_BUFFER_SIZE     (ADC_CHANNEL_COUNT * ADC_SAMPLE_COUNT)
 
 // Calibration parameters
-#define VBUS_CAL_ENABLE  1       // Enable/disable calibration
+#define VBUS_CAL_ENABLE  0       // Enable/disable calibration
 #define ADC_VREF_VOLTAGE 3300    // ADC reference voltage (mV)
 #define VBUS_DIV_R1      100000  // VBUS upper voltage divider resistor (Ω)
 #define VBUS_DIV_R2      6800    // VBUS lower voltage divider resistor (Ω)
