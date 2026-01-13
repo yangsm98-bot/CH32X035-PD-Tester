@@ -154,15 +154,18 @@ static void handle_left_button(void) {
     if (g_power_state.is_edit_mode && g_power_state.power_mode == POWER_MODE_PD) {
         uint16_t min_voltage, max_voltage, step;
         if (get_apdo_voltage_range(g_power_state.pd_position, &min_voltage, &max_voltage, &step)) {
-            if (g_power_state.edit_voltage > min_voltage) {
+            // 调到最小值后，再减则跳到最大值
+            if (g_power_state.edit_voltage <= min_voltage) {
+                g_power_state.edit_voltage = max_voltage;
+            } else {
                 // 按步进减小电压
                 if (g_power_state.edit_voltage >= min_voltage + step) {
                     g_power_state.edit_voltage -= step;
                 } else {
                     g_power_state.edit_voltage = min_voltage;
                 }
-                LOG("Edit voltage decreased to: %u mV\n", g_power_state.edit_voltage);
             }
+            LOG("Edit voltage decreased to: %u mV\n", g_power_state.edit_voltage);
         }
         return;
     }
@@ -211,15 +214,18 @@ static void handle_right_button(void) {
     if (g_power_state.is_edit_mode && g_power_state.power_mode == POWER_MODE_PD) {
         uint16_t min_voltage, max_voltage, step;
         if (get_apdo_voltage_range(g_power_state.pd_position, &min_voltage, &max_voltage, &step)) {
-            if (g_power_state.edit_voltage < max_voltage) {
+            // 调到最大值后，再加则跳到最小值
+            if (g_power_state.edit_voltage >= max_voltage) {
+                g_power_state.edit_voltage = min_voltage;
+            } else {
                 // 按步进增加电压
                 if (g_power_state.edit_voltage <= max_voltage - step) {
                     g_power_state.edit_voltage += step;
                 } else {
                     g_power_state.edit_voltage = max_voltage;
                 }
-                LOG("Edit voltage increased to: %umV\n", g_power_state.edit_voltage);
             }
+            LOG("Edit voltage increased to: %umV\n", g_power_state.edit_voltage);
         }
         return;
     }
